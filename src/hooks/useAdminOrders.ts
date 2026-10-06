@@ -46,19 +46,25 @@ export function useAdminOrders() {
 
       if (ordersError) throw ordersError;
       
-      // Get unique user IDs and vendor IDs
-      const userIds = [...new Set((ordersData || []).map(o => o.user_id))];
-      const vendorIds = [...new Set((ordersData || []).flatMap(o => 
-        (o.order_items || []).map((item: any) => item.vendor_id)
-      ))];
+      // Get unique customer and vendor IDs
+      const profileIds = [...new Set((ordersData || []).flatMap(o => [
+        o.user_id,
+        ...(o.order_items || []).map(item => item.vendor_id),
+      ]))];
       
-      // Fetch profiles for customers and vendors
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, full_name, email, store_name")
-        .in("id", [...userIds, ...vendorIds]);
+      // Fetch profiles in batches to keep request URLs short
+      const BATCH_SIZE = 100;
+      const profiles: { id: string; full_name: string | null; email: string; store_name: string | null }[] = [];
+      for (let i = 0; i < profileIds.length; i += BATCH_SIZE) {
+        const { data, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, full_name, email, store_name")
+          .in("id", profileIds.slice(i, i + BATCH_SIZE));
+        if (profilesError) throw profilesError;
+        profiles.push(...(data || []));
+      }
       
-      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+      const profileMap = new Map(profiles.map(p => [p.id, p]));
       
       // Map orders with customer and vendor info
       return (ordersData || []).map((order: any) => {

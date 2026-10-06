@@ -65,8 +65,8 @@ export function useProducts({ categorySlug, search, page = 1, limit = 12, featur
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
-      if (featured) {
-        query = query.eq("featured", true);
+      if (featured !== undefined) {
+        query = query.eq("featured", featured);
       }
 
       if (categorySlug) {
