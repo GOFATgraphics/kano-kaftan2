@@ -100,6 +100,45 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          created_at: string
+          customer_id: string
+          customer_last_read_at: string
+          id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          last_sender_id: string | null
+          product_id: string | null
+          vendor_id: string
+          vendor_last_read_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          customer_last_read_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          last_sender_id?: string | null
+          product_id?: string | null
+          vendor_id: string
+          vendor_last_read_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          customer_last_read_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          last_sender_id?: string | null
+          product_id?: string | null
+          vendor_id?: string
+          vendor_last_read_at?: string
+        }
+        Relationships: []
+      }
       delivery_addresses: {
         Row: {
           city: string
@@ -200,6 +239,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+        }
+        Relationships: []
       }
       notifications: {
         Row: {
@@ -642,8 +705,10 @@ export type Database = {
           preferred_currency: string | null
           preferred_language: string | null
           store_address: Json | null
+          store_banner_url: string | null
           store_description: string | null
           store_name: string | null
+          store_slug: string | null
           updated_at: string
         }
         Insert: {
@@ -664,8 +729,10 @@ export type Database = {
           preferred_currency?: string | null
           preferred_language?: string | null
           store_address?: Json | null
+          store_banner_url?: string | null
           store_description?: string | null
           store_name?: string | null
+          store_slug?: string | null
           updated_at?: string
         }
         Update: {
@@ -686,8 +753,10 @@ export type Database = {
           preferred_currency?: string | null
           preferred_language?: string | null
           store_address?: Json | null
+          store_banner_url?: string | null
           store_description?: string | null
           store_name?: string | null
+          store_slug?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -788,6 +857,24 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_follows: {
+        Row: {
+          created_at: string
+          user_id: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+          vendor_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -880,8 +967,10 @@ export type Database = {
           id: string | null
           is_verified: boolean | null
           store_address: Json | null
+          store_banner_url: string | null
           store_description: string | null
           store_name: string | null
+          store_slug: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -905,6 +994,84 @@ export type Database = {
       }
     }
     Functions: {
+      get_shop: {
+        Args: { p_slug?: string | null; p_vendor_id?: string | null }
+        Returns: {
+          id: string
+          store_name: string
+          store_slug: string
+          store_description: string | null
+          avatar_url: string | null
+          store_banner_url: string | null
+          is_verified: boolean
+          city: string | null
+          state: string | null
+          joined_at: string
+          product_count: number
+          follower_count: number
+          items_sold: number
+          rating: number | null
+          review_count: number
+        }[]
+      }
+      get_shop_reviews: {
+        Args: { p_vendor_id: string; p_limit?: number }
+        Returns: {
+          id: string
+          rating: number
+          review_text: string | null
+          seller_reply: string | null
+          created_at: string
+          product_name: string
+          product_slug: string
+          reviewer_name: string
+        }[]
+      }
+      list_my_conversations: {
+        Args: { p_conversation_id?: string | null }
+        Returns: {
+          id: string
+          role: string
+          other_party_id: string
+          other_party_name: string
+          other_party_avatar: string | null
+          shop_slug: string | null
+          product_id: string | null
+          product_name: string | null
+          product_slug: string | null
+          last_message_at: string | null
+          last_message_preview: string | null
+          unread: boolean
+        }[]
+      }
+      list_shops: {
+        Args: { p_search?: string | null; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          store_name: string
+          store_slug: string
+          store_description: string | null
+          avatar_url: string | null
+          store_banner_url: string | null
+          is_verified: boolean
+          city: string | null
+          state: string | null
+          joined_at: string
+          product_count: number
+          follower_count: number
+          items_sold: number
+          rating: number | null
+          review_count: number
+        }[]
+      }
+      mark_conversation_read: {
+        Args: { p_conversation_id: string }
+        Returns: undefined
+      }
+      start_conversation: {
+        Args: { p_vendor_id: string; p_product_id?: string | null }
+        Returns: string
+      }
       admin_resolve_dispute: {
         Args: { p_order_id: string; p_outcome: string }
         Returns: undefined

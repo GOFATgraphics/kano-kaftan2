@@ -35,6 +35,9 @@ import Help from "./pages/Help";
 import Addresses from "./pages/Addresses";
 import BecomeVendor from "./pages/BecomeVendor";
 import VendorProfilePage from "./pages/VendorProfile";
+import Shops from "./pages/Shops";
+import Messages from "./pages/Messages";
+import Conversation from "./pages/Conversation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -86,6 +89,10 @@ const App = () => (
             <Route path="/addresses" element={<Addresses />} />
             <Route path="/become-vendor" element={<BecomeVendor />} />
             <Route path="/vendor/:vendorId" element={<VendorProfilePage />} />
+            <Route path="/shop/:slug" element={<VendorProfilePage />} />
+            <Route path="/shops" element={<Shops />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/messages/:id" element={<Conversation />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

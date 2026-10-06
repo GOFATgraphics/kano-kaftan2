@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, User, ArrowLeftRight } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, User, ArrowLeftRight, MessageCircle } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +20,7 @@ const menuItems = [
   { title: "Dashboard", url: "/vendor/dashboard", icon: LayoutDashboard },
   { title: "Products", url: "/vendor/products", icon: Package },
   { title: "Orders", url: "/vendor/orders", icon: ShoppingCart },
+  { title: "Messages", url: "/messages", icon: MessageCircle },
   { title: "Settings", url: "/vendor/settings", icon: Settings },
 ];
 

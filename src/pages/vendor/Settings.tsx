@@ -9,6 +9,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { VendorLayout } from "@/components/vendor/VendorLayout";
 import { PayoutAccountCard } from "@/components/vendor/PayoutAccountCard";
+import { ShopBrandingCard } from "@/components/vendor/ShopBrandingCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -496,6 +497,8 @@ export default function VendorSettings() {
               )}
             </CardContent>
           </Card>
+
+          {user && <ShopBrandingCard vendorId={user.id} />}
 
           {user && <PayoutAccountCard vendorId={user.id} />}
 

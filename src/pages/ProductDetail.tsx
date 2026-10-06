@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ChevronLeft, Heart, Minus, Plus, ShoppingCart, Truck, Shield, RotateCcw, BadgeCheck, Store, Share2 } from "lucide-react";
+import { ChatWithVendorButton } from "@/components/chat/ChatWithVendorButton";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -328,13 +329,24 @@ export default function ProductDetail() {
                   <BadgeCheck className="h-5 w-5 text-primary flex-shrink-0" />
                 )}
               </div>
-              <p className="text-sm text-muted-foreground mt-0.5">Verified Seller</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {product.vendor.is_verified ? "Verified Seller" : "Seller"}
+              </p>
             </div>
             <Button variant="default" size="sm" className="rounded-full gap-2 shadow-sm">
               <Store className="h-4 w-4" />
               View Shop
             </Button>
           </Link>
+        )}
+        {product.vendor && (
+          <ChatWithVendorButton
+            vendorId={product.vendor.id}
+            productId={product.id}
+            variant="outline"
+            className="w-full"
+            label="Ask the seller about this item"
+          />
         )}
 
         {/* Description */}

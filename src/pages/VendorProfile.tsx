@@ -1,122 +1,81 @@
-import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Store, BadgeCheck, Package, Star, MapPin, Share2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useParams, Link, Navigate, useNavigate } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
+import {
+  ChevronLeft, Store, BadgeCheck, Package, Star, MapPin, Share2, Search, Heart, Loader2,
+} from "lucide-react";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProductCard } from "@/components/products/ProductCard";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { ChatWithVendorButton } from "@/components/chat/ChatWithVendorButton";
+import { useShop, useShopFollow, useShopProducts, useShopReviews } from "@/hooks/useShops";
+import { useAuth } from "@/contexts/AuthContext";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
-import type { Product } from "@/hooks/useProducts";
+import { toast } from "sonner";
 
-function formatPrice(amount: number): string {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    minimumFractionDigits: 0,
-  }).format(amount);
-}
+const DEFAULT_SHARE_IMAGE = "https://storage.googleapis.com/gpt-engineer-file-uploads/n85PtjtstLSH7FGT5eE0A6dm6zi2/social-images/social-1767791624177-Gemini_Generated_Image_duw5q6duw5q6duw5.png";
 
+type SortOption = "newest" | "price-asc" | "price-desc";
+
+/** A vendor's shop, at /shop/:slug (old /vendor/:vendorId links redirect here). */
 export default function VendorProfile() {
-  const { vendorId } = useParams<{ vendorId: string }>();
-  
-  const { data: vendor, isLoading: vendorLoading } = useQuery({
-    queryKey: ["vendor-profile", vendorId],
-    queryFn: async () => {
-      if (!vendorId) return null;
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", vendorId)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!vendorId,
-  });
+  const { slug, vendorId } = useParams<{ slug?: string; vendorId?: string }>();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { data: shop, isLoading } = useShop({ slug, vendorId });
+  const { data: products, isLoading: productsLoading } = useShopProducts(shop?.id);
+  const { data: reviews } = useShopReviews(shop?.id);
+  const { isFollowing, toggleFollow, canFollow } = useShopFollow(shop?.id);
 
-  const { data: products, isLoading: productsLoading } = useQuery({
-    queryKey: ["vendor-products", vendorId],
-    queryFn: async () => {
-      if (!vendorId) return [];
-      const { data, error } = await supabase
-        .from("products")
-        .select(`
-          *,
-          product_images (id, url, is_primary, alt_text),
-          category:categories (id, name, slug),
-          vendor:profiles!products_vendor_id_fkey(id, full_name, avatar_url, is_verified, store_name)
-        `)
-        .eq("vendor_id", vendorId)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
-      
-      if (error) throw error;
-      return data as Product[] || [];
-    },
-    enabled: !!vendorId,
-  });
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
+  const [sort, setSort] = useState<SortOption>("newest");
 
-  const { data: stats } = useQuery({
-    queryKey: ["vendor-stats", vendorId],
-    queryFn: async () => {
-      if (!vendorId) return { totalProducts: 0, totalOrders: 0, rating: 4.5 };
-      
-      // Get product count
-      const { count: productCount } = await supabase
-        .from("products")
-        .select("*", { count: "exact", head: true })
-        .eq("vendor_id", vendorId)
-        .eq("is_active", true);
-      
-      // Get order items count (approximation of orders)
-      const { count: orderCount } = await supabase
-        .from("order_items")
-        .select("*", { count: "exact", head: true })
-        .eq("vendor_id", vendorId);
-      
-      // Get average rating
-      const { data: reviews } = await supabase
-        .from("reviews")
-        .select("rating")
-        .in("product_id", products?.map(p => p.id) || []);
-      
-      const avgRating = reviews?.length 
-        ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length 
-        : 4.5;
-      
-      return {
-        totalProducts: productCount || 0,
-        totalOrders: orderCount || 0,
-        rating: avgRating,
-      };
-    },
-    enabled: !!vendorId && !!products,
-  });
+  const categories = useMemo(() => {
+    const map = new Map<string, string>();
+    products?.forEach((p) => p.category && map.set(p.category.slug, p.category.name));
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [products]);
 
-  // Update document meta for social sharing
-  const storeName = vendor?.store_name || vendor?.full_name || "Store";
-  const storeDescription = vendor?.store_description || `Shop authentic Nigerian Agbada, Kaftan, and Dashiki from ${storeName} on Kano Kaftan.`;
-  const storeImage = vendor?.avatar_url || "https://storage.googleapis.com/gpt-engineer-file-uploads/n85PtjtstLSH7FGT5eE0A6dm6zi2/social-images/social-1767791624177-Gemini_Generated_Image_duw5q6duw5q6duw5.png";
-  
+  const visibleProducts = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const filtered = (products ?? []).filter(
+      (p) =>
+        (!term || p.name.toLowerCase().includes(term)) &&
+        (category === "all" || p.category?.slug === category),
+    );
+    if (sort === "price-asc") return [...filtered].sort((a, b) => a.price - b.price);
+    if (sort === "price-desc") return [...filtered].sort((a, b) => b.price - a.price);
+    return filtered;
+  }, [products, search, category, sort]);
+
+  const shopUrl = shop ? `${window.location.origin}/shop/${shop.store_slug}` : window.location.href;
+
   useDocumentMeta({
-    title: vendor ? `${storeName} - Kano Kaftan` : "Loading Store...",
-    description: storeDescription,
-    image: storeImage,
-    url: `https://kanokaftan.shop/vendor/${vendorId}`,
+    title: shop ? `${shop.store_name} - Kano Kaftan` : "Shop - Kano Kaftan",
+    description:
+      shop?.store_description ||
+      `Shop authentic Nigerian Agbada, Kaftan, and Dashiki from ${shop?.store_name ?? "our sellers"} on Kano Kaftan.`,
+    image: shop?.store_banner_url || shop?.avatar_url || DEFAULT_SHARE_IMAGE,
+    url: shopUrl,
   });
 
-  if (vendorLoading) {
+  // Old /vendor/:id links: move to the short link once we know it.
+  if (vendorId && shop) {
+    return <Navigate to={`/shop/${shop.store_slug}`} replace />;
+  }
+
+  if (isLoading) {
     return (
       <MobileLayout>
         <div className="px-4 py-6">
-          <Skeleton className="h-32 w-full rounded-xl mb-6" />
+          <Skeleton className="h-40 w-full rounded-xl mb-6" />
           <div className="grid grid-cols-2 gap-4">
             {[1, 2, 3, 4].map((i) => (
               <Skeleton key={i} className="aspect-square rounded-xl" />
@@ -127,164 +86,268 @@ export default function VendorProfile() {
     );
   }
 
-  if (!vendor) {
+  if (!shop) {
     return (
       <MobileLayout>
-        <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-6">
+        <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-6 text-center">
           <Store className="h-16 w-16 text-muted-foreground/50 mb-4" />
-          <h1 className="text-lg font-bold">Store Not Found</h1>
-          <p className="mt-2 text-sm text-muted-foreground">This store doesn't exist or is no longer active.</p>
+          <h1 className="text-lg font-bold">Shop not found</h1>
+          <p className="mt-2 text-sm text-muted-foreground">This shop doesn't exist or is no longer active.</p>
           <Button asChild className="mt-4">
-            <Link to="/products">Browse Products</Link>
+            <Link to="/shops">Browse shops</Link>
           </Button>
         </div>
       </MobileLayout>
     );
   }
 
-  const storeAddress = vendor.store_address as { city?: string; state?: string } | null;
-
-  const handleShareShop = async () => {
-    const shopUrl = `https://kanokaftan.shop/vendor/${vendorId}`;
-    const storeName = vendor.store_name || vendor.full_name || "Store";
+  const handleShare = async () => {
     const shareData = {
-      title: `${storeName} - Kano Kaftan`,
-      text: `Check out ${storeName} on Kano Kaftan! Shop authentic Nigerian traditional attire.`,
+      title: `${shop.store_name} - Kano Kaftan`,
+      text: `Check out ${shop.store_name} on Kano Kaftan! Shop authentic Nigerian traditional attire.`,
       url: shopUrl,
     };
-
     try {
-      if (navigator.share && navigator.canShare(shareData)) {
+      if (navigator.share && navigator.canShare?.(shareData)) {
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(shopUrl);
-        toast.success("Vendor shop link copied! 🎉", {
-          description: "Share it with friends",
-        });
+        toast.success("Shop link copied!", { description: shopUrl });
       }
     } catch (error) {
-      if ((error as Error).name !== 'AbortError') {
+      if ((error as Error).name !== "AbortError") {
         await navigator.clipboard.writeText(shopUrl);
-        toast.success("Vendor shop link copied! 🎉");
+        toast.success("Shop link copied!");
       }
     }
   };
 
+  const handleFollow = async () => {
+    if (!user) {
+      toast.info("Sign in to follow shops");
+      navigate(`/auth?redirect=${encodeURIComponent(`/shop/${shop.store_slug}`)}`);
+      return;
+    }
+    try {
+      const nowFollowing = await toggleFollow.mutateAsync();
+      toast.success(nowFollowing ? `Following ${shop.store_name}. We'll tell you about new items.` : "Unfollowed");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Could not update follow");
+    }
+  };
+
+  const isOwnShop = user?.id === shop.id;
+
   return (
     <MobileLayout hideHeader>
-      {/* Hero Section */}
-      <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-background px-4 pt-4 pb-6">
+      {/* Banner */}
+      <div className="relative h-36 bg-gradient-to-br from-primary/25 via-primary/10 to-muted md:h-52">
+        {shop.store_banner_url && (
+          <img src={shop.store_banner_url} alt="" className="h-full w-full object-cover" />
+        )}
         <Button
           variant="ghost"
           size="icon"
           className="absolute left-4 top-4 h-10 w-10 rounded-full bg-background/80 backdrop-blur"
-          asChild
+          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/shops"))}
+          aria-label="Back"
         >
-          <Link to="/products">
-            <ChevronLeft className="h-5 w-5" />
-          </Link>
+          <ChevronLeft className="h-5 w-5" />
         </Button>
-
-        {/* Share Shop Button */}
         <Button
           variant="ghost"
           size="icon"
           className="absolute right-4 top-4 h-10 w-10 rounded-full bg-background/80 backdrop-blur"
-          onClick={handleShareShop}
+          onClick={handleShare}
+          aria-label="Share shop"
         >
           <Share2 className="h-5 w-5" />
         </Button>
-
-        <div className="pt-12 flex flex-col items-center text-center">
-          <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-            <AvatarImage src={vendor.avatar_url || undefined} alt={vendor.store_name || "Store"} />
-            <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold">
-              {vendor.store_name?.charAt(0) || vendor.full_name?.charAt(0) || "S"}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="mt-4 flex items-center gap-2">
-            <h1 className="font-display text-xl font-bold">
-              {vendor.store_name || vendor.full_name || "Store"}
-            </h1>
-            {vendor.is_verified && (
-              <BadgeCheck className="h-5 w-5 text-primary" />
-            )}
-          </div>
-
-          {storeAddress && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-              <MapPin className="h-3 w-3" />
-              <span>{storeAddress.city}, {storeAddress.state}</span>
-            </div>
-          )}
-
-          {vendor.store_description && (
-            <p className="mt-3 text-sm text-muted-foreground max-w-[280px]">
-              {vendor.store_description}
-            </p>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mt-6">
-          <Card className="bg-background/60 backdrop-blur border-0">
-            <CardContent className="p-3 text-center">
-              <p className="text-lg font-bold">{stats?.totalProducts || 0}</p>
-              <p className="text-xs text-muted-foreground">Products</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-background/60 backdrop-blur border-0">
-            <CardContent className="p-3 text-center">
-              <p className="text-lg font-bold">{stats?.totalOrders || 0}</p>
-              <p className="text-xs text-muted-foreground">Sales</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-background/60 backdrop-blur border-0">
-            <CardContent className="p-3 text-center flex flex-col items-center">
-              <div className="flex items-center gap-1">
-                <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                <span className="font-bold">{stats?.rating?.toFixed(1) || "4.5"}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Rating</p>
-            </CardContent>
-          </Card>
-        </div>
       </div>
 
-      <Separator />
-
-      {/* Products Section */}
-      <div className="px-4 py-6 pb-24">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-bold">Products</h2>
-          <Badge variant="secondary">{products?.length || 0} items</Badge>
+      {/* Header */}
+      <div className="px-4 pb-4">
+        <div className="-mt-12 flex items-end justify-between gap-3">
+          <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
+            <AvatarImage src={shop.avatar_url || undefined} alt={shop.store_name} />
+            <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold">
+              {shop.store_name.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
+          {isOwnShop ? (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/vendor/settings">Edit shop</Link>
+            </Button>
+          ) : null}
         </div>
 
-        {productsLoading ? (
-          <div className="grid grid-cols-2 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="aspect-square rounded-xl" />
-            ))}
-          </div>
-        ) : products?.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-              <Package className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <h3 className="font-medium mb-1">No products yet</h3>
-              <p className="text-sm text-muted-foreground">
-                This vendor hasn't added any products
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-2 gap-4">
-            {products?.map((product) => (
-              <ProductCard key={product.id} product={product} hideFloatingCart />
-            ))}
+        <div className="mt-3 flex items-center gap-2">
+          <h1 className="font-display text-xl font-bold">{shop.store_name}</h1>
+          {shop.is_verified && <BadgeCheck className="h-5 w-5 text-primary" aria-label="Verified seller" />}
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          {(shop.city || shop.state) && (
+            <span className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {[shop.city, shop.state].filter(Boolean).join(", ")}
+            </span>
+          )}
+          <span>Joined {formatDistanceToNow(new Date(shop.joined_at), { addSuffix: true })}</span>
+        </div>
+        {shop.store_description && (
+          <p className="mt-3 whitespace-pre-line text-sm text-muted-foreground">{shop.store_description}</p>
+        )}
+
+        {/* Stats */}
+        <div className="mt-4 grid grid-cols-4 gap-2">
+          {[
+            { value: shop.product_count, label: "Products" },
+            { value: shop.follower_count, label: "Followers" },
+            { value: shop.items_sold, label: "Sold" },
+            {
+              value: shop.rating !== null ? Number(shop.rating).toFixed(1) : "–",
+              label: `${shop.review_count} reviews`,
+              star: shop.rating !== null,
+            },
+          ].map((stat) => (
+            <Card key={stat.label} className="border-0 bg-muted/50">
+              <CardContent className="p-2 text-center">
+                <p className="flex items-center justify-center gap-1 font-bold">
+                  {stat.star && <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />}
+                  {stat.value}
+                </p>
+                <p className="text-[11px] text-muted-foreground">{stat.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Actions */}
+        {!isOwnShop && (
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <Button
+              variant={isFollowing ? "outline" : "default"}
+              onClick={handleFollow}
+              disabled={toggleFollow.isPending || (!!user && !canFollow)}
+            >
+              {toggleFollow.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Heart className={`mr-2 h-4 w-4 ${isFollowing ? "fill-current" : ""}`} />
+              )}
+              {isFollowing ? "Following" : "Follow"}
+            </Button>
+            <ChatWithVendorButton vendorId={shop.id} variant="outline" label="Chat" />
           </div>
         )}
       </div>
+
+      <Tabs defaultValue="products" className="px-4 pb-24">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="products">Products ({shop.product_count})</TabsTrigger>
+          <TabsTrigger value="reviews">Reviews ({shop.review_count})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="products" className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={`Search ${shop.store_name}`}
+              className="pl-9"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger aria-label="Category">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {categories.map(([value, name]) => (
+                  <SelectItem key={value} value={value}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sort} onValueChange={(v) => setSort(v as SortOption)}>
+              <SelectTrigger aria-label="Sort">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="price-asc">Price: low to high</SelectItem>
+                <SelectItem value="price-desc">Price: high to low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {productsLoading ? (
+            <div className="grid grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="aspect-square rounded-xl" />
+              ))}
+            </div>
+          ) : visibleProducts.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+                <Package className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                <h3 className="font-medium mb-1">
+                  {products?.length ? "No products match" : "No products yet"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {products?.length ? "Try a different search or category." : "This shop hasn't listed anything yet."}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+              {visibleProducts.map((product) => (
+                <ProductCard key={product.id} product={product} hideFloatingCart />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="reviews" className="space-y-3">
+          {!reviews?.length ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">No reviews yet.</p>
+          ) : (
+            reviews.map((review) => (
+              <Card key={review.id}>
+                <CardContent className="space-y-1 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-0.5" aria-label={`${review.rating} out of 5`}>
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <Star
+                          key={n}
+                          className={`h-3.5 w-3.5 ${n <= review.rating ? "fill-amber-500 text-amber-500" : "text-muted-foreground/40"}`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(review.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  {review.review_text && <p className="text-sm">{review.review_text}</p>}
+                  <p className="text-xs text-muted-foreground">
+                    {review.reviewer_name} on{" "}
+                    <Link to={`/products/${review.product_slug}`} className="underline">
+                      {review.product_name}
+                    </Link>
+                  </p>
+                  {review.seller_reply && (
+                    <p className="mt-2 rounded-md bg-muted p-2 text-xs">
+                      <span className="font-medium">Seller reply: </span>
+                      {review.seller_reply}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
     </MobileLayout>
   );
 }

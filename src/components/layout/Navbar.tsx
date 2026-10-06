@@ -53,6 +53,12 @@ export function Navbar() {
             Shop
           </Link>
           <Link 
+            to="/shops" 
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          >
+            Sellers
+          </Link>
+          <Link 
             to="/products?category=agbada" 
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
           >
@@ -134,6 +140,13 @@ export function Navbar() {
               onClick={() => setIsMenuOpen(false)}
             >
               Shop All
+            </Link>
+            <Link 
+              to="/shops" 
+              className="text-sm font-medium"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Sellers
             </Link>
             <Link 
               to="/products?category=agbada" 
