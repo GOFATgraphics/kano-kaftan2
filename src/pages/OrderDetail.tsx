@@ -14,6 +14,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { MobileLayout } from "@/components/layout/MobileLayout";
+import { BuyerProtection } from "@/components/orders/BuyerProtection";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,7 +46,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const { orders, isLoading, confirmDelivery } = useOrders();
+  const { orders, isLoading } = useOrders();
   const { initiatePayment, verifyPayment, isProcessing } = usePayment();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -117,17 +118,6 @@ export default function OrderDetail() {
       setOrder(found || null);
     }
   }, [orders, isLoading, id]);
-
-  const handleConfirmDelivery = async () => {
-    if (!order) return;
-    try {
-      await confirmDelivery.mutateAsync(order.id);
-      toast.success("Delivery confirmed! Payment released to seller.");
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to confirm delivery";
-      toast.error(message);
-    }
-  };
 
   const handleRetryPayment = async () => {
     if (!order || !user?.email) {
@@ -324,13 +314,7 @@ export default function OrderDetail() {
             </div>
           )}
 
-          {/* Confirm Delivery Button */}
-          {order.status === "delivered" && !order.confirmed_at && (
-            <Button className="mt-4 w-full" onClick={handleConfirmDelivery}>
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              Confirm Receipt
-            </Button>
-          )}
+          <BuyerProtection order={order} />
         </div>
 
         {/* Delivery Address */}

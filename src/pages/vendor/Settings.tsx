@@ -3,11 +3,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { 
-  Store, CreditCard, Save, Loader2, Camera, BadgeCheck, 
+  Store, Save, Loader2, Camera, BadgeCheck, 
   ShieldCheck, MapPin
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { VendorLayout } from "@/components/vendor/VendorLayout";
+import { PayoutAccountCard } from "@/components/vendor/PayoutAccountCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,10 +37,6 @@ const settingsSchema = z.object({
   store_street: z.string().optional(),
   store_city: z.string().optional(),
   store_state: z.string().optional(),
-  bank_name: z.string().optional(),
-  account_number: z.string().optional(),
-  account_name: z.string().optional(),
-  payout_preference: z.enum(["daily", "weekly", "monthly"]).optional(),
 });
 
 const NIGERIAN_STATES = [
@@ -76,10 +73,6 @@ export default function VendorSettings() {
       store_street: "",
       store_city: "",
       store_state: "",
-      bank_name: "",
-      account_number: "",
-      account_name: "",
-      payout_preference: "weekly",
     },
   });
 
@@ -116,10 +109,6 @@ export default function VendorSettings() {
             store_street: storeAddress?.street || "",
             store_city: storeAddress?.city || "",
             store_state: storeAddress?.state || "",
-            bank_name: profile.bank_name || "",
-            account_number: profile.account_number || "",
-            account_name: profile.account_name || "",
-            payout_preference: (profile.payout_preference as "daily" | "weekly" | "monthly") || "weekly",
           });
           setAvatarUrl(profile.avatar_url);
           setIsVerified(profile.is_verified || false);
@@ -272,10 +261,6 @@ export default function VendorSettings() {
           store_description: data.store_description,
           phone: data.phone,
           store_address: storeAddress,
-          bank_name: data.bank_name,
-          account_number: data.account_number,
-          account_name: data.account_name,
-          payout_preference: data.payout_preference,
         })
         .eq("id", user.id);
 
@@ -512,65 +497,7 @@ export default function VendorSettings() {
             </CardContent>
           </Card>
 
-          {/* Bank Details */}
-          <Card>
-            <CardHeader className="pb-3 md:pb-6">
-              <CardTitle className="text-base md:text-lg flex items-center gap-2">
-                <CreditCard className="h-4 w-4 md:h-5 md:w-5" />
-                Payout Information
-              </CardTitle>
-              <CardDescription className="text-xs md:text-sm">
-                Bank account for payments
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="bank_name" className="text-sm">Bank Name</Label>
-                  <Input
-                    id="bank_name"
-                    {...form.register("bank_name")}
-                    placeholder="e.g., First Bank"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="account_number" className="text-sm">Account Number</Label>
-                  <Input
-                    id="account_number"
-                    {...form.register("account_number")}
-                    placeholder="10-digit number"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="account_name" className="text-sm">Account Name</Label>
-                <Input
-                  id="account_name"
-                  {...form.register("account_name")}
-                  placeholder="Name on bank account"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="payout_preference" className="text-sm">Payout Frequency</Label>
-                <Select
-                  value={form.watch("payout_preference")}
-                  onValueChange={(value) => form.setValue("payout_preference", value as "daily" | "weekly" | "monthly")}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select frequency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
+          {user && <PayoutAccountCard vendorId={user.id} />}
 
           <Button type="submit" disabled={isSaving} className="w-full">
             {isSaving ? (

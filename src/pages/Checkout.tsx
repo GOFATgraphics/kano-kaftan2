@@ -182,16 +182,9 @@ export default function Checkout() {
     setIsSubmitting(true);
     try {
       const order = await createOrder.mutateAsync({
-        shipping_address: {
-          full_name: selectedAddress.full_name,
-          phone: selectedAddress.phone,
-          street_address: selectedAddress.street_address,
-          city: selectedAddress.city,
-          state: selectedAddress.state,
-          landmark: selectedAddress.landmark || undefined,
-        },
+        address_id: selectedAddress.id,
+        promo_code: appliedPromo?.code,
         notes: notes || undefined,
-        shipping_fee: shippingInfo.finalFee,
       });
 
       const paymentResult = await initiatePayment(order.id, user.email);

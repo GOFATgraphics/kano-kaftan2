@@ -321,6 +321,11 @@ export type Database = {
       orders: {
         Row: {
           auto_release_at: string | null
+          dispute_reason: string | null
+          dispute_resolved_at: string | null
+          dispute_status: string | null
+          disputed_at: string | null
+          shipped_at: string | null
           confirmed_at: string | null
           created_at: string
           delivery_type: string | null
@@ -341,6 +346,11 @@ export type Database = {
         }
         Insert: {
           auto_release_at?: string | null
+          dispute_reason?: string | null
+          dispute_resolved_at?: string | null
+          dispute_status?: string | null
+          disputed_at?: string | null
+          shipped_at?: string | null
           confirmed_at?: string | null
           created_at?: string
           delivery_type?: string | null
@@ -361,6 +371,11 @@ export type Database = {
         }
         Update: {
           auto_release_at?: string | null
+          dispute_reason?: string | null
+          dispute_resolved_at?: string | null
+          dispute_status?: string | null
+          disputed_at?: string | null
+          shipped_at?: string | null
           confirmed_at?: string | null
           created_at?: string
           delivery_type?: string | null
@@ -378,6 +393,84 @@ export type Database = {
           tracking_updates?: Json | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      payouts: {
+        Row: {
+          amount: number
+          attempts: number
+          commission_amount: number
+          commission_percent: number
+          created_at: string
+          failure_reason: string | null
+          gross_amount: number
+          id: string
+          order_id: string
+          paid_at: string | null
+          reference: string | null
+          status: string
+          tranche: number
+          transfer_code: string | null
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          amount: number
+          attempts?: number
+          commission_amount: number
+          commission_percent: number
+          created_at?: string
+          failure_reason?: string | null
+          gross_amount: number
+          id?: string
+          order_id: string
+          paid_at?: string | null
+          reference?: string | null
+          status: string
+          tranche: number
+          transfer_code?: string | null
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          amount?: number
+          attempts?: number
+          commission_amount?: number
+          commission_percent?: number
+          created_at?: string
+          failure_reason?: string | null
+          gross_amount?: number
+          id?: string
+          order_id?: string
+          paid_at?: string | null
+          reference?: string | null
+          status?: string
+          tranche?: number
+          transfer_code?: string | null
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          auto_release_days: number
+          commission_percent: number
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          auto_release_days?: number
+          commission_percent?: number
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_release_days?: number
+          commission_percent?: number
+          id?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -716,6 +809,39 @@ export type Database = {
         }
         Relationships: []
       }
+      vendor_payout_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          bank_code: string
+          bank_name: string
+          created_at: string
+          recipient_code: string
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          bank_code: string
+          bank_name: string
+          created_at?: string
+          recipient_code: string
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          bank_code?: string
+          bank_name?: string
+          created_at?: string
+          recipient_code?: string
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: []
+      }
       wishlists: {
         Row: {
           created_at: string
@@ -779,6 +905,18 @@ export type Database = {
       }
     }
     Functions: {
+      admin_resolve_dispute: {
+        Args: { p_order_id: string; p_outcome: string }
+        Returns: undefined
+      }
+      admin_retry_payout: {
+        Args: { p_payout_id: string }
+        Returns: undefined
+      }
+      confirm_order_delivery: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -793,6 +931,14 @@ export type Database = {
       is_order_vendor: {
         Args: { _order_id: string; _vendor_id: string }
         Returns: boolean
+      }
+      open_order_dispute: {
+        Args: { p_order_id: string; p_reason: string }
+        Returns: undefined
+      }
+      place_order: {
+        Args: { p_address_id: string; p_notes?: string | null; p_promo_code?: string | null }
+        Returns: Database["public"]["Tables"]["orders"]["Row"]
       }
     }
     Enums: {

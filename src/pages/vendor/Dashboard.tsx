@@ -1,6 +1,7 @@
 import { VendorLayout, useVendorAuth } from "@/components/vendor/VendorLayout";
 import { useVendorProducts } from "@/hooks/useVendorProducts";
 import { useVendorOrders } from "@/hooks/useVendorOrders";
+import { PayoutsCard } from "@/components/vendor/PayoutsCard";
 import { useProductMutations } from "@/hooks/useProductMutations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -244,6 +245,8 @@ export default function VendorDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {userId && <PayoutsCard vendorId={userId} />}
 
         {/* Inventory List */}
         <Card>

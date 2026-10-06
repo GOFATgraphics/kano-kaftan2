@@ -1,4 +1,6 @@
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { PayoutLedger } from "@/components/admin/PayoutLedger";
+import { DisputesPanel } from "@/components/admin/DisputesPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -87,13 +89,23 @@ export default function AdminFinance() {
         </Card>
       </div>
 
-      <Tabs defaultValue="payouts" className="space-y-6">
+      <Tabs defaultValue="ledger" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="payouts">Vendor Payouts</TabsTrigger>
+          <TabsTrigger value="ledger">Payouts</TabsTrigger>
+          <TabsTrigger value="disputes">Disputes</TabsTrigger>
+          <TabsTrigger value="payouts">Vendor Summary</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
         </TabsList>
 
         {/* Payouts Tab */}
+        <TabsContent value="ledger">
+          <PayoutLedger />
+        </TabsContent>
+
+        <TabsContent value="disputes">
+          <DisputesPanel />
+        </TabsContent>
+
         <TabsContent value="payouts">
           {/* Mobile View */}
           <div className="md:hidden space-y-3 mb-20">

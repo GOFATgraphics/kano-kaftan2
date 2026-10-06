@@ -44,15 +44,18 @@ export interface Order {
   }>;
   confirmed_at: string | null;
   auto_release_at: string | null;
+  shipped_at: string | null;
+  dispute_status: "open" | "resolved_vendor" | "resolved_customer" | null;
+  dispute_reason: string | null;
   created_at: string;
   updated_at: string;
   order_items?: OrderItem[];
 }
 
 export interface CreateOrderData {
-  shipping_address: Order["shipping_address"];
+  address_id: string;
+  promo_code?: string;
   notes?: string;
-  shipping_fee: number;
 }
 
 export function useOrders() {
@@ -89,104 +92,15 @@ export function useOrders() {
     mutationFn: async (orderData: CreateOrderData) => {
       if (!userId) throw new Error("Must be logged in");
 
-      console.log("Creating order for user:", userId);
+      // Prices, shipping and stock are checked on the server.
+      const { data: order, error } = await supabase.rpc("place_order", {
+        p_address_id: orderData.address_id,
+        p_promo_code: orderData.promo_code ?? null,
+        p_notes: orderData.notes ?? null,
+      });
 
-      // Get cart items
-      const { data: cartItems, error: cartError } = await supabase
-        .from("cart_items")
-        .select(`
-          *,
-          product:products (
-            id,
-            name,
-            price,
-            vendor_id,
-            stock_quantity
-          ),
-          variant:product_variants (
-            id,
-            name,
-            price_adjustment,
-            stock_quantity
-          )
-        `)
-        .eq("user_id", userId);
-
-      console.log("Cart items fetched:", cartItems?.length, "Error:", cartError);
-
-      if (cartError) throw new Error(`Cart fetch error: ${cartError.message}`);
-      if (!cartItems || cartItems.length === 0) throw new Error("Cart is empty");
-
-      // STOCK VALIDATION: Check if all items have sufficient stock
-      const stockErrors: string[] = [];
-      for (const item of cartItems) {
-        const availableStock = item.variant?.stock_quantity ?? item.product.stock_quantity;
-        if (item.quantity > availableStock) {
-          stockErrors.push(
-            `"${item.product.name}"${item.variant ? ` (${item.variant.name})` : ""} only has ${availableStock} in stock, but you requested ${item.quantity}`
-          );
-        }
-      }
-
-      if (stockErrors.length > 0) {
-        throw new Error(`Insufficient stock:\n${stockErrors.join("\n")}`);
-      }
-      const subtotal = cartItems.reduce((sum, item) => {
-        const price = item.product.price + (item.variant?.price_adjustment || 0);
-        return sum + price * item.quantity;
-      }, 0);
-
-      const total = subtotal + orderData.shipping_fee;
-
-      console.log("Creating order with subtotal:", subtotal, "total:", total);
-
-      // Create order
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert([{
-          user_id: userId,
-          status: "pending_payment",
-          payment_status: "pending",
-          subtotal,
-          shipping_fee: orderData.shipping_fee,
-          total,
-          shipping_address: orderData.shipping_address as any,
-          notes: orderData.notes,
-        }])
-        .select()
-        .single();
-
-      console.log("Order created:", order?.id, "Error:", orderError);
-
-      if (orderError) throw new Error(`Order creation error: ${orderError.message}`);
-
-      // Create order items
-      const orderItems = cartItems.map((item) => ({
-        order_id: order.id,
-        product_id: item.product.id,
-        product_name: item.product.name,
-        variant_id: item.variant_id,
-        variant_name: item.variant?.name,
-        vendor_id: item.product.vendor_id,
-        quantity: item.quantity,
-        unit_price: item.product.price + (item.variant?.price_adjustment || 0),
-        total_price: (item.product.price + (item.variant?.price_adjustment || 0)) * item.quantity,
-      }));
-
-      console.log("Creating order items:", orderItems.length);
-
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems);
-
-      console.log("Order items result, Error:", itemsError);
-
-      if (itemsError) throw new Error(`Order items error: ${itemsError.message}`);
-
-      // Clear cart
-      await supabase.from("cart_items").delete().eq("user_id", userId);
-
-      return order;
+      if (error) throw new Error(error.message);
+      return order as unknown as Order;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -198,17 +112,26 @@ export function useOrders() {
     mutationFn: async (orderId: string) => {
       if (!userId) throw new Error("Must be logged in");
 
-      const { error } = await supabase
-        .from("orders")
-        .update({
-          status: "completed",
-          confirmed_at: new Date().toISOString(),
-          escrow_status: "released",
-        })
-        .eq("id", orderId)
-        .eq("user_id", userId);
+      const { data, error } = await supabase.functions.invoke("confirm-delivery", {
+        body: { orderId },
+      });
 
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Could not confirm delivery");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+
+  const openDispute = useMutation({
+    mutationFn: async ({ orderId, reason }: { orderId: string; reason: string }) => {
+      const { error } = await supabase.rpc("open_order_dispute", {
+        p_order_id: orderId,
+        p_reason: reason,
+      });
+
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -221,5 +144,6 @@ export function useOrders() {
     refetch: ordersQuery.refetch,
     createOrder,
     confirmDelivery,
+    openDispute,
   };
 }

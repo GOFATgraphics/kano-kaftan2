@@ -162,12 +162,7 @@ export function useVendorOrders(vendorId: string | null) {
         updated_at: new Date().toISOString(),
       };
 
-      // Set auto_release_at when marking as delivered (7 days from now)
-      if (status === "delivered") {
-        const autoReleaseDate = new Date();
-        autoReleaseDate.setDate(autoReleaseDate.getDate() + 7);
-        updateData.auto_release_at = autoReleaseDate.toISOString();
-      }
+      // The database starts the payout auto-release clock when the order first ships.
 
       const { error } = await supabase
         .from("orders")

@@ -2,11 +2,14 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Shield, Users, Database, Bell, Server } from "lucide-react";
+import { PayoutSettingsCard } from "@/components/admin/PayoutSettingsCard";
 
 export default function AdminSettings() {
   return (
     <AdminLayout title="Settings">
       <div className="grid gap-6 md:grid-cols-2 mb-20 md:mb-0">
+        <PayoutSettingsCard />
+
         {/* Backend Access Card */}
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader>
