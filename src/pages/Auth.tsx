@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { GoogleSignInButton, OrDivider } from "@/components/auth/GoogleSignInButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -191,7 +192,22 @@ export default function AuthPage() {
               : "Join K² to shop or sell traditional attire"}
           </p>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6">
+          <div className="mt-8">
+            <GoogleSignInButton
+              returnPath={`/auth?redirect=${encodeURIComponent(
+                mode === "register" && selectedRole === "vendor" ? "/become-vendor" : redirectTo,
+              )}`}
+              label={mode === "register" ? "Sign up with Google" : "Continue with Google"}
+            />
+            {mode === "register" && selectedRole === "vendor" && (
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                After Google sign-in you'll set up your store.
+              </p>
+            )}
+          </div>
+          <OrDivider />
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {mode === "register" && (
               <>
                 <div className="space-y-2">

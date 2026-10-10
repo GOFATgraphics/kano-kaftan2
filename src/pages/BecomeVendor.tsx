@@ -66,34 +66,14 @@ export default function BecomeVendor() {
 
     setIsSubmitting(true);
     try {
-      // Add vendor role to user
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: user!.id,
-          role: "vendor",
-        });
+      // Creates the vendor role and store details on the server.
+      const { error } = await supabase.rpc("become_vendor", {
+        p_store_name: formData.store_name.trim(),
+        p_store_description: formData.store_description || null,
+        p_phone: formData.phone || null,
+      });
 
-      if (roleError) {
-        if (roleError.message.includes("duplicate")) {
-          toast.error("You already have a vendor account");
-        } else {
-          throw roleError;
-        }
-        return;
-      }
-
-      // Update profile with store info
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          store_name: formData.store_name,
-          store_description: formData.store_description || null,
-          phone: formData.phone || null,
-        })
-        .eq("id", user!.id);
-
-      if (profileError) throw profileError;
+      if (error) throw new Error(error.message);
 
       toast.success("Congratulations! You're now a vendor!", {
         description: "You can start adding products to your store.",

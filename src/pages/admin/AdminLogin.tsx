@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { GoogleSignInButton, OrDivider } from "@/components/auth/GoogleSignInButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -84,6 +85,9 @@ export default function AdminLogin() {
         </CardHeader>
         <CardContent>
           {!user ? (
+            <>
+            <GoogleSignInButton returnPath="/admin" />
+            <OrDivider />
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="admin-email">Email</Label>
@@ -98,6 +102,7 @@ export default function AdminLogin() {
                 Sign in
               </Button>
             </form>
+            </>
           ) : (
             <form onSubmit={handleUnlock} className="space-y-4">
               <div className="space-y-2">

@@ -1045,6 +1045,10 @@ export type Database = {
       }
     }
     Functions: {
+      become_vendor: {
+        Args: { p_store_name: string; p_store_description?: string | null; p_phone?: string | null }
+        Returns: undefined
+      }
       admin_create_order: {
         Args: { p_customer_id: string; p_items: Json; p_delivery_fee: number; p_shipping_address: Json; p_notes?: string | null; p_conversation_id?: string | null }
         Returns: Database["public"]["Tables"]["orders"]["Row"]
