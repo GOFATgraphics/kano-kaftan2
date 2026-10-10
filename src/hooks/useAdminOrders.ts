@@ -6,6 +6,7 @@ export interface AdminOrder {
   user_id: string;
   status: string;
   payment_status: string;
+  escrow_status: string | null;
   total: number;
   subtotal: number;
   shipping_fee: number;

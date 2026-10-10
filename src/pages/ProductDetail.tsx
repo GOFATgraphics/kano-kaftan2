@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ChevronLeft, Heart, Minus, Plus, ShoppingCart, Truck, Shield, RotateCcw, BadgeCheck, Store, Share2 } from "lucide-react";
 import { ChatWithVendorButton } from "@/components/chat/ChatWithVendorButton";
+import { ChatWithUsButton } from "@/components/chat/ChatWithUsButton";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -340,13 +341,22 @@ export default function ProductDetail() {
           </Link>
         )}
         {product.vendor && (
-          <ChatWithVendorButton
-            vendorId={product.vendor.id}
-            productId={product.id}
-            variant="outline"
-            className="w-full"
-            label="Ask the seller about this item"
-          />
+          <div className="space-y-2 rounded-xl border p-3">
+            <ChatWithUsButton productId={product.id} className="w-full" />
+            <p className="text-center text-xs text-muted-foreground">
+              Protected: we get the item from the seller, arrange delivery and only pay the seller once it reaches you.
+            </p>
+            <ChatWithVendorButton
+              vendorId={product.vendor.id}
+              productId={product.id}
+              variant="outline"
+              className="w-full"
+              label="Chat with seller directly"
+            />
+            <p className="text-center text-xs text-muted-foreground">
+              Deals you agree directly with the seller are at your own risk.
+            </p>
+          </div>
         )}
 
         {/* Description */}

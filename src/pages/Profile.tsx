@@ -139,7 +139,7 @@ export default function Profile() {
       icon: Shield, 
       label: "Admin Dashboard", 
       description: "Manage platform", 
-      href: "/admin/dashboard" 
+      href: "/admin" 
     });
   }
 

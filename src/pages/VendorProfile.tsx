@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProductCard } from "@/components/products/ProductCard";
 import { ChatWithVendorButton } from "@/components/chat/ChatWithVendorButton";
+import { ChatWithUsButton } from "@/components/chat/ChatWithUsButton";
 import { useShop, useShopFollow, useShopProducts, useShopReviews } from "@/hooks/useShops";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
@@ -237,7 +238,11 @@ export default function VendorProfile() {
               )}
               {isFollowing ? "Following" : "Follow"}
             </Button>
-            <ChatWithVendorButton vendorId={shop.id} variant="outline" label="Chat" />
+            <ChatWithVendorButton vendorId={shop.id} variant="outline" label="Chat with seller" />
+            <ChatWithUsButton className="col-span-2" variant="secondary" label="Buy through Kano Kaftan (protected)" />
+            <p className="col-span-2 text-center text-xs text-muted-foreground">
+              Deals made directly with the seller are at your own risk.
+            </p>
           </div>
         )}
       </div>

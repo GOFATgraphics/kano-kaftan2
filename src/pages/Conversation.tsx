@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { format, isSameDay } from "date-fns";
-import { ChevronLeft, Loader2, Send, ShieldCheck } from "lucide-react";
+import { ChevronLeft, Loader2, Send, ShieldAlert, ShieldCheck, ShoppingBag } from "lucide-react";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
-import { useConversation } from "@/hooks/useChat";
+import { useConversation, type ConversationSummary } from "@/hooks/useChat";
+import { ChatWithUsButton } from "@/components/chat/ChatWithUsButton";
+import { CreateOrderDialog } from "@/components/chat/CreateOrderDialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -18,6 +20,7 @@ export default function Conversation() {
   const { user, isLoading: authLoading } = useAuth();
   const { conversation, messages, isLoading, sendMessage, userId } = useConversation(id);
   const [draft, setDraft] = useState("");
+  const [orderOpen, setOrderOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,17 +76,17 @@ export default function Conversation() {
           ) : (
             <Skeleton className="h-9 w-40" />
           )}
+          {conversation?.role === "support_team" && conversation.other_party_id && (
+            <Button size="sm" className="ml-auto flex-shrink-0" onClick={() => setOrderOpen(true)}>
+              <ShoppingBag className="mr-1 h-4 w-4" />
+              Create order
+            </Button>
+          )}
         </div>
 
         {/* Messages */}
         <div className="flex-1 space-y-2 overflow-y-auto px-3 py-4">
-          <div className="mx-auto mb-3 flex max-w-md gap-2 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
-            <ShieldCheck className="h-4 w-4 flex-shrink-0 text-primary" />
-            <p>
-              Pay through Kano Kaftan checkout to be protected: the seller gets the rest of the money only after you
-              confirm delivery. Deals paid outside the app aren't covered.
-            </p>
-          </div>
+          <ChatNotice conversation={conversation} />
 
           {isLoading ? (
             <Loader2 className="mx-auto h-5 w-5 animate-spin" />
@@ -108,7 +111,7 @@ export default function Conversation() {
                         mine ? "rounded-br-sm bg-primary text-primary-foreground" : "rounded-bl-sm bg-muted",
                       )}
                     >
-                      {message.body}
+                      <MessageBody body={message.body} mine={mine} />
                       <span className={cn("mt-1 block text-right text-[10px]", mine ? "text-primary-foreground/70" : "text-muted-foreground")}>
                         {format(created, "h:mm a")}
                       </span>
@@ -120,6 +123,16 @@ export default function Conversation() {
           )}
           <div ref={bottomRef} />
         </div>
+
+        {conversation?.role === "support_team" && conversation.other_party_id && (
+          <CreateOrderDialog
+            open={orderOpen}
+            onOpenChange={setOrderOpen}
+            customerId={conversation.other_party_id}
+            conversationId={conversation.id}
+            suggestedProductId={conversation.product_id}
+          />
+        )}
 
         {/* Composer */}
         {conversation && (
@@ -145,5 +158,74 @@ export default function Conversation() {
         )}
       </div>
     </MobileLayout>
+  );
+}
+
+/** Context banner at the top of a thread. */
+function ChatNotice({ conversation }: { conversation: ConversationSummary | null }) {
+  if (!conversation) return null;
+
+  if (conversation.role === "support_user") {
+    return (
+      <div className="mx-auto mb-3 flex max-w-md gap-2 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
+        <ShieldCheck className="h-4 w-4 flex-shrink-0 text-primary" />
+        <p>
+          You're chatting with the Kano Kaftan team. Tell us what you'd like to buy: we get it from the seller, arrange
+          delivery and send you a secure payment link here. The seller is only fully paid after you receive it.
+        </p>
+      </div>
+    );
+  }
+
+  if (conversation.role === "support_team") {
+    return (
+      <div className="mx-auto mb-3 flex max-w-md gap-2 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
+        <ShieldCheck className="h-4 w-4 flex-shrink-0 text-primary" />
+        <p>
+          Support chat with {conversation.other_party_is_vendor ? "a vendor" : "a customer"}. Replies are sent as Kano
+          Kaftan and every admin can see this thread.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto mb-3 max-w-md space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+      <div className="flex gap-2">
+        <ShieldAlert className="h-4 w-4 flex-shrink-0" />
+        <p>
+          {conversation.role === "customer"
+            ? "Deals you agree directly with the seller, and payments made outside Kano Kaftan, are at your own risk."
+            : "Deals agreed directly with customers are outside Kano Kaftan's protection."}
+        </p>
+      </div>
+      {conversation.role === "customer" && (
+        <ChatWithUsButton
+          size="sm"
+          variant="outline"
+          className="w-full bg-background"
+          productId={conversation.product_id ?? undefined}
+          label="Buy through Kano Kaftan instead (protected)"
+        />
+      )}
+    </div>
+  );
+}
+
+/** Turns "/orders/<id>" in a message into a tappable link. */
+function MessageBody({ body, mine }: { body: string; mine: boolean }) {
+  const parts = body.split(/(\/orders\/[0-9a-f-]{36})/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        /^\/orders\/[0-9a-f-]{36}$/.test(part) ? (
+          <Link key={i} to={part} className={cn("font-semibold underline", mine ? "text-primary-foreground" : "text-primary")}>
+            Open order and pay
+          </Link>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
   );
 }

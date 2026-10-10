@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 
-export type ConversationSummary = Database["public"]["Functions"]["list_my_conversations"]["Returns"][number];
+export type ConversationSummary = Database["public"]["Functions"]["list_inbox"]["Returns"][number];
 export type ChatMessage = Database["public"]["Tables"]["messages"]["Row"];
 
 export function useConversations() {
@@ -16,7 +16,7 @@ export function useConversations() {
   const query = useQuery({
     queryKey: ["conversations", userId],
     queryFn: async (): Promise<ConversationSummary[]> => {
-      const { data, error } = await supabase.rpc("list_my_conversations", {});
+      const { data, error } = await supabase.rpc("list_inbox", {});
       if (error) throw error;
       return data ?? [];
     },
@@ -49,7 +49,7 @@ export function useConversation(conversationId: string | undefined) {
   const summaryQuery = useQuery({
     queryKey: ["conversation", conversationId],
     queryFn: async (): Promise<ConversationSummary | null> => {
-      const { data, error } = await supabase.rpc("list_my_conversations", { p_conversation_id: conversationId! });
+      const { data, error } = await supabase.rpc("list_inbox", { p_conversation_id: conversationId! });
       if (error) throw error;
       return data?.[0] ?? null;
     },
@@ -133,6 +133,19 @@ export function useStartConversation() {
     mutationFn: async ({ vendorId, productId }: { vendorId: string; productId?: string }) => {
       const { data, error } = await supabase.rpc("start_conversation", {
         p_vendor_id: vendorId,
+        p_product_id: productId ?? null,
+      });
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}
+
+/** Opens (or reuses) the signed-in user's chat with the Kano Kaftan team. */
+export function useStartSupportConversation() {
+  return useMutation({
+    mutationFn: async (productId?: string) => {
+      const { data, error } = await supabase.rpc("start_support_conversation", {
         p_product_id: productId ?? null,
       });
       if (error) throw new Error(error.message);

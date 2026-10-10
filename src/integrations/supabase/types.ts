@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_unlocks: {
+        Row: {
+          unlocked_until: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          unlocked_until: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          unlocked_until?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cart_items: {
         Row: {
           created_at: string
@@ -106,11 +124,12 @@ export type Database = {
           customer_id: string
           customer_last_read_at: string
           id: string
+          kind: string
           last_message_at: string | null
           last_message_preview: string | null
           last_sender_id: string | null
           product_id: string | null
-          vendor_id: string
+          vendor_id: string | null
           vendor_last_read_at: string
         }
         Insert: {
@@ -118,11 +137,12 @@ export type Database = {
           customer_id: string
           customer_last_read_at?: string
           id?: string
+          kind?: string
           last_message_at?: string | null
           last_message_preview?: string | null
           last_sender_id?: string | null
           product_id?: string | null
-          vendor_id: string
+          vendor_id?: string | null
           vendor_last_read_at?: string
         }
         Update: {
@@ -130,11 +150,12 @@ export type Database = {
           customer_id?: string
           customer_last_read_at?: string
           id?: string
+          kind?: string
           last_message_at?: string | null
           last_message_preview?: string | null
           last_sender_id?: string | null
           product_id?: string | null
-          vendor_id?: string
+          vendor_id?: string | null
           vendor_last_read_at?: string
         }
         Relationships: []
@@ -300,6 +321,36 @@ export type Database = {
           title?: string
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      order_deliveries: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          delivery_company: string
+          order_id: string
+          pickup_code: string
+          tracking_reference: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          delivery_company: string
+          order_id: string
+          pickup_code: string
+          tracking_reference?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          delivery_company?: string
+          order_id?: string
+          pickup_code?: string
+          tracking_reference?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -994,6 +1045,41 @@ export type Database = {
       }
     }
     Functions: {
+      admin_create_order: {
+        Args: { p_customer_id: string; p_items: Json; p_delivery_fee: number; p_shipping_address: Json; p_notes?: string | null; p_conversation_id?: string | null }
+        Returns: Database["public"]["Tables"]["orders"]["Row"]
+      }
+      admin_mark_delivered: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
+      admin_set_delivery: {
+        Args: { p_order_id: string; p_delivery_company: string; p_pickup_code: string; p_tracking_reference?: string | null }
+        Returns: undefined
+      }
+      list_inbox: {
+        Args: { p_conversation_id?: string | null }
+        Returns: {
+          id: string
+          kind: string
+          role: string
+          other_party_id: string | null
+          other_party_name: string
+          other_party_avatar: string | null
+          other_party_is_vendor: boolean
+          shop_slug: string | null
+          product_id: string | null
+          product_name: string | null
+          product_slug: string | null
+          last_message_at: string | null
+          last_message_preview: string | null
+          unread: boolean
+        }[]
+      }
+      start_support_conversation: {
+        Args: { p_product_id?: string | null }
+        Returns: string
+      }
       get_shop: {
         Args: { p_slug?: string | null; p_vendor_id?: string | null }
         Returns: {

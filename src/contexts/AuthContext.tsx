@@ -8,6 +8,8 @@ interface AuthContextType {
   isLoading: boolean;
   isVendor: boolean;
   isAdmin: boolean;
+  rolesLoading: boolean;
+  refreshRoles: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -19,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isVendor, setIsVendor] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [rolesLoading, setRolesLoading] = useState(true);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -31,12 +34,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Defer role checks to avoid deadlock
         if (session?.user) {
           setTimeout(() => {
-            checkVendorStatus(session.user.id);
-            checkAdminStatus(session.user.id);
+            loadRoles(session.user.id);
           }, 0);
         } else {
           setIsVendor(false);
           setIsAdmin(false);
+          setRolesLoading(false);
         }
       }
     );
@@ -48,8 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       
       if (session?.user) {
-        checkVendorStatus(session.user.id);
-        checkAdminStatus(session.user.id);
+        loadRoles(session.user.id);
+      } else {
+        setRolesLoading(false);
       }
     });
 
@@ -82,12 +86,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loadRoles = async (userId: string) => {
+    setRolesLoading(true);
+    await Promise.all([checkVendorStatus(userId), checkAdminStatus(userId)]);
+    setRolesLoading(false);
+  };
+
+  const refreshRoles = async () => {
+    const { data } = await supabase.auth.getUser();
+    if (data.user) await loadRoles(data.user.id);
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isLoading, isVendor, isAdmin, signOut }}>
+    <AuthContext.Provider value={{ user, session, isLoading, isVendor, isAdmin, rolesLoading, refreshRoles, signOut }}>
       {children}
     </AuthContext.Provider>
   );

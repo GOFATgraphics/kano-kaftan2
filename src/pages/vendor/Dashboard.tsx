@@ -2,6 +2,7 @@ import { VendorLayout, useVendorAuth } from "@/components/vendor/VendorLayout";
 import { useVendorProducts } from "@/hooks/useVendorProducts";
 import { useVendorOrders } from "@/hooks/useVendorOrders";
 import { PayoutsCard } from "@/components/vendor/PayoutsCard";
+import { ChatWithUsButton } from "@/components/chat/ChatWithUsButton";
 import { useProductMutations } from "@/hooks/useProductMutations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -155,6 +156,7 @@ export default function VendorDashboard() {
               All Products
             </Link>
           </Button>
+          <ChatWithUsButton size="sm" variant="outline" className="flex-shrink-0" label="Chat with Kano Kaftan" />
         </div>
 
         {/* Stats Cards - 2x2 grid on mobile */}

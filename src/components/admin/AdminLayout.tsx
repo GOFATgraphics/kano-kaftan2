@@ -1,6 +1,6 @@
 import { ReactNode, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Menu, X, LayoutDashboard, Users, Store, Package, ShoppingCart, FolderTree, Settings, LogOut, ArrowLeftRight, Shield, DollarSign, FileText } from "lucide-react";
+import { Menu, X, LayoutDashboard, Users, Store, Package, ShoppingCart, FolderTree, Settings, LogOut, ArrowLeftRight, Shield, DollarSign, FileText, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -21,6 +21,7 @@ const navItems = [
   { title: "Vendors", url: "/admin/vendors", icon: Store },
   { title: "Products", url: "/admin/products", icon: Package },
   { title: "Orders", url: "/admin/orders", icon: ShoppingCart },
+  { title: "Messages", url: "/messages", icon: MessageCircle },
   { title: "Categories", url: "/admin/categories", icon: FolderTree },
   { title: "Finance", url: "/admin/finance", icon: DollarSign },
   { title: "Reports", url: "/admin/reports", icon: FileText },
@@ -28,16 +29,18 @@ const navItems = [
 ];
 
 export function AdminLayout({ children, title }: AdminLayoutProps) {
-  const { isLoading } = useAdminAuth();
+  const { isLoading, isAdmin } = useAdminAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = async () => {
+    // End the admin unlock too, so the key is needed again next time.
+    await supabase.functions.invoke("admin-unlock", { body: { action: "lock" } }).catch(() => undefined);
     await supabase.auth.signOut();
     navigate("/");
   };
 
-  if (isLoading) {
+  if (isLoading || !isAdmin) {
     return (
       <div className="min-h-screen bg-background p-4">
         <Skeleton className="h-12 w-full mb-4" />

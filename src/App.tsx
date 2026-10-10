@@ -38,6 +38,7 @@ import VendorProfilePage from "./pages/VendorProfile";
 import Shops from "./pages/Shops";
 import Messages from "./pages/Messages";
 import Conversation from "./pages/Conversation";
+import AdminLogin from "./pages/admin/AdminLogin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -74,6 +75,7 @@ const App = () => (
             <Route path="/vendor/products/:id" element={<VendorProductForm />} />
             <Route path="/vendor/orders" element={<VendorOrders />} />
             <Route path="/vendor/settings" element={<VendorSettings />} />
+            <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/vendors" element={<AdminVendors />} />

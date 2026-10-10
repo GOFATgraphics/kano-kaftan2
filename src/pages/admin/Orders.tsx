@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { DeliveryActions } from "@/components/admin/DeliveryActions";
 import { useAdminOrders } from "@/hooks/useAdminOrders";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -133,7 +134,8 @@ export default function AdminOrders() {
                   {order.payment_status === "paid" ? "💰 Paid" : order.payment_status === "pending" ? "⏳ Unpaid" : order.payment_status}
                 </Badge>
               </div>
-              <div className="pt-3 border-t">
+              <div className="pt-3 border-t space-y-2">
+                <DeliveryActions orderId={order.id} paymentStatus={order.payment_status} escrowStatus={order.escrow_status} />
                 <Select
                   value={order.status}
                   onValueChange={(value) => handleStatusUpdate(order.id, value)}
@@ -203,7 +205,8 @@ export default function AdminOrders() {
                       <Badge className={`${getStatusColor(order.status)} capitalize`}>{order.status.replace(/_/g, " ")}</Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{format(new Date(order.created_at), "MMM dd, yyyy")}</TableCell>
-                    <TableCell>
+                    <TableCell className="space-y-2">
+                      <DeliveryActions orderId={order.id} paymentStatus={order.payment_status} escrowStatus={order.escrow_status} />
                       <Select
                         value={order.status}
                         onValueChange={(value) => handleStatusUpdate(order.id, value)}

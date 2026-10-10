@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { BuyerProtection } from "@/components/orders/BuyerProtection";
+import { DeliveryCode } from "@/components/orders/DeliveryCode";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -314,6 +315,7 @@ export default function OrderDetail() {
             </div>
           )}
 
+          <DeliveryCode orderId={order.id} />
           <BuyerProtection order={order} />
         </div>
 

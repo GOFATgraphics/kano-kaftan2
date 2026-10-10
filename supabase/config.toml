@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.vendor-payout-account]
 verify_jwt = false
+
+[functions.admin-unlock]
+verify_jwt = false
